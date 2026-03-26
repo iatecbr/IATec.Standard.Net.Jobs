@@ -1,6 +1,7 @@
+using Domain.Options;
 using IATec.Shared.Domain.Options;
 
-namespace Api.Configurations.Extensions;
+namespace App.Configurations.Extensions;
 
 public static class OptionsExtension
 {
@@ -10,6 +11,8 @@ public static class OptionsExtension
     {
         services.Configure<LogServiceOption>(configuration.GetSection(LogServiceOption.Key));
         services.Configure<ContainerOption>(configuration.GetSection(ContainerOption.Key));
+        services.Configure<AwsOption>(configuration.GetSection(AwsOption.Key));
+        services.Configure<RedisOption>(configuration.GetSection(RedisOption.Key));
 
         return services;
     }

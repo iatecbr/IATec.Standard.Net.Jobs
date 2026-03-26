@@ -1,4 +1,4 @@
-namespace Api.Configurations.Extensions;
+namespace App.Configurations.Extensions;
 
 public static class MigrationExtensions
 {

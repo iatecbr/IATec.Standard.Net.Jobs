@@ -3,10 +3,10 @@ using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Api.Configurations.Extensions;
+namespace App.Configurations.Extensions;
 
 /// <summary>
-/// Health Check Configuration
+///     Health Check Configuration
 /// </summary>
 public static class HealthCheckExtension
 {
@@ -21,10 +21,10 @@ public static class HealthCheckExtension
     }
 
     /// <summary>
-    /// Use Health Check
+    ///     Use Health Check
     /// </summary>
     /// <param name="app"></param>
-    public static WebApplication UseApiHealthChecks(this WebApplication app)
+    public static WebApplication UseAppHealthChecks(this WebApplication app)
     {
         app.UseHealthChecks("/_healthcheck/status", new HealthCheckOptions
         {
