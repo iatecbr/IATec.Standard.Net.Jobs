@@ -1,23 +1,16 @@
-using Application.Features.Assets.Commands;
 using FluentValidation;
 
-namespace Application.Features.Assets.Validators;
+namespace Application.Features.Assets.Events.Validators;
 
-public class CreateAssetValidator : AbstractValidator<CreateAssetCommand>
+public class AssetCreatedEventValidator : AbstractValidator<AssetCreatedEvent>
 {
-    public CreateAssetValidator()
+    public AssetCreatedEventValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty()
             .WithMessage("The asset name is required.")
             .MaximumLength(200)
             .WithMessage("The asset name must not exceed 200 characters.");
-
-        RuleFor(x => x.Description)
-            .NotEmpty()
-            .WithMessage("The asset description is required.")
-            .MaximumLength(1000)
-            .WithMessage("The description must not exceed 1000 characters.");
 
         RuleFor(x => x.Code)
             .NotEmpty()
@@ -35,9 +28,8 @@ public class CreateAssetValidator : AbstractValidator<CreateAssetCommand>
             .LessThanOrEqualTo(DateTime.UtcNow)
             .WithMessage("The acquisition date cannot be a future date.");
 
-        RuleFor(x => x.Category)
-            .MaximumLength(100)
-            .WithMessage("The category must not exceed 100 characters.")
-            .When(x => x.Category is not null);
+        RuleFor(x => x.CreatedAt)
+            .NotEmpty()
+            .WithMessage("The creation timestamp is required.");
     }
 }

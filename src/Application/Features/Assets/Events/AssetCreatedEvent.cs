@@ -1,9 +1,8 @@
-using FluentResults;
-using MediatR;
+using Domain.Contracts.Bus;
 
-namespace Application.Features.Assets.Commands;
+namespace Application.Features.Assets.Events;
 
-public sealed class CreateAssetCommand : IRequest<Result>
+public record AssetCreatedEvent : IIntegrationEvent
 {
     public string Name { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
@@ -11,4 +10,5 @@ public sealed class CreateAssetCommand : IRequest<Result>
     public decimal Value { get; init; }
     public DateTime AcquisitionDate { get; init; }
     public string? Category { get; init; }
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }
