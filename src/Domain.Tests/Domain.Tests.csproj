@@ -7,12 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\CrossCutting\CrossCutting.csproj"/>
-        <ProjectReference Include="..\Domain\Domain.csproj"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="IATec.Shared.Application" Version="1.1.0" />
+        <Compile Remove="Class1.cs"/>
     </ItemGroup>
 
 </Project>

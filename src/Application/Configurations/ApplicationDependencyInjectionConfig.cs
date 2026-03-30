@@ -1,23 +1,18 @@
 using Application.Configurations.Extensions;
-using Application.Contracts;
-using Application.RecurringJobs;
-using Microsoft.Extensions.Configuration;
+using Application.Dispatchers.Logging;
+using IATec.Shared.Domain.Contracts.Dispatcher;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application.Configurations;
 
 public static class ApplicationDependencyInjectionConfig
 {
-    public static IServiceCollection ConfigureApplication(
-        this IServiceCollection services,
-        IConfiguration configuration)
+    public static IServiceCollection ConfigureApplication(this IServiceCollection services)
     {
-        services.AddOptions(configuration);
+        services.AddMediator()
+            .AddValidators();
 
-        services.AddScoped<IJobDispatcher, JobDispatcher>();
-
-        services.AddScoped<VerifyDocumentStatus>();
-        services.AddScoped<DeleteInactiveContainer>();
+        services.AddScoped<ILogDispatcher, LogDispatcher>();
 
         return services;
     }
