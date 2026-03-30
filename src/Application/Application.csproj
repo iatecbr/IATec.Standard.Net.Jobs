@@ -7,12 +7,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\CrossCutting\CrossCutting.csproj"/>
-        <ProjectReference Include="..\Domain\Domain.csproj"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="IATec.Shared.Application" Version="1.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.3"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.3"/>
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.3"/>
     </ItemGroup>
 
 </Project>
