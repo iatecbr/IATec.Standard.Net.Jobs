@@ -1,9 +1,9 @@
-namespace Domain.Options;
+namespace MessageQueue.Options;
 
 /// <summary>
 ///     Amazon SQS specific configuration. Nested under AwsOption.
 /// </summary>
-public class SqsOption //TODO: move to library
+public class SqsOption
 {
     public string AccessKey { get; set; } = string.Empty;
     public string SecretKey { get; init; } = string.Empty;

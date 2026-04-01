@@ -1,4 +1,6 @@
-using Domain.Options;
+using App.Configurations.Options;
+using MessageQueue.Options;
+using Persistence.Options;
 using IATec.Shared.Domain.Options;
 
 namespace App.Configurations.Extensions;
@@ -13,6 +15,7 @@ public static class OptionsExtension
         services.Configure<ContainerOption>(configuration.GetSection(ContainerOption.Key));
         services.Configure<AwsOption>(configuration.GetSection(AwsOption.Key));
         services.Configure<RedisOption>(configuration.GetSection(RedisOption.Key));
+        services.Configure<DashboardOption>(configuration.GetSection(DashboardOption.Key));
 
         return services;
     }

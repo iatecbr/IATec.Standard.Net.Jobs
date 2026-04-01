@@ -1,10 +1,10 @@
-namespace Domain.Options;
+namespace MessageQueue.Options;
 
 /// <summary>
 ///     Top-level AWS configuration. Bound from "AWS" section in appsettings.json.
 ///     Contains nested SQS options and an optional ServiceUrl for LocalStack.
 /// </summary>
-public class AwsOption //TODO: move to library
+public class AwsOption
 {
     public const string Key = "AWS";
 

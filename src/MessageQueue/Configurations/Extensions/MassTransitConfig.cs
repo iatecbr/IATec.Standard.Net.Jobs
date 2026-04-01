@@ -1,10 +1,8 @@
 using Amazon.SimpleNotificationService;
 using Amazon.SQS;
-using Application.Features.Assets.Events.Consumers;
-using Domain.Contracts.Bus;
-using Domain.Options;
+using MessageQueue.Options;
 using MassTransit;
-using MessageQueue.Bus;
+using MessageQueue.Consumers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -17,7 +15,7 @@ public static class MassTransitConfig
         services.AddMassTransit(busConfig =>
         {
             // Register event consumers
-            busConfig.AddConsumer<AssetCreatedEventConsumer>();
+            busConfig.AddConsumer<ProcessAssetEventConsumer>();
 
             // Configure Amazon SQS transport
             busConfig.UsingAmazonSqs((context, cfg) =>
@@ -66,8 +64,6 @@ public static class MassTransitConfig
                     sqs.WaitTimeSeconds = 20;
             });
         });
-
-        services.AddScoped<IMessagePublisher, MessagePublisher>();
 
         return services;
     }

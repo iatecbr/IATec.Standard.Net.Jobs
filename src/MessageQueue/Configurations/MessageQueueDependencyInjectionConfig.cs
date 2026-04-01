@@ -1,4 +1,4 @@
-using Domain.Options;
+using MessageQueue.Options;
 using MessageQueue.Configurations.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,4 +1,4 @@
-using Domain.Options;
+using Persistence.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
@@ -12,7 +12,12 @@ public static class RedisExtension
         var redisOption = new RedisOption();
         configuration.GetSection(RedisOption.Key).Bind(redisOption);
 
-        services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOption.ConnectionString));
+        services.AddSingleton<IConnectionMultiplexer>(_ =>
+            ConnectionMultiplexer.Connect(new ConfigurationOptions
+            {
+                EndPoints = { redisOption.HostConnectionString },
+                DefaultDatabase = redisOption.Database
+            }));
 
         return services;
     }
