@@ -1,26 +1,28 @@
 using System.Linq.Expressions;
-using Application.Services;
+using System.Reflection;
+using FluentResults;
 using Hangfire;
+using HangFire.Jobs.Services;
+using MediatR;
 
-namespace Application.Extensions;
+namespace HangFire.Jobs.Extensions;
 
 /// <summary>
 ///     Extension methods to simplify job enqueuing within a monitored batch.
 ///     These methods extract the <see cref="IBatchAction" /> from the batch context object
-///     passed to user code via <see cref="IBatchJobService.StartMonitoredBatch" />.
+///     passed to user code via <see cref="Domain.Contracts.Services.IBatchJobService.StartMonitoredBatch" />.
 ///     Usage example:
 ///     <code>
-/// batchJobService.StartMonitoredBatch("Process Assets", batch =>
+/// batchJobService.StartMonitoredBatch("Process Assets", (batch, batchKeyValue) =>
 /// {
-///     foreach (var asset in assets)
+///     foreach (var command in commands)
 ///     {
-///         batch.EnqueueBatch&lt;ProcessAssetJob&gt;(
-///             job => job.ExecuteAsync(asset, null, CancellationToken.None));
+///         batch.EnqueueCommandBatch(command, CancellationToken.None);
 ///     }
 /// });
 /// </code>
 /// </summary>
-public static class BatchJobServiceExtensions //TODO: move to library
+public static class BatchJobServiceExtensions
 {
     /// <summary>
     ///     Enqueues a fire-and-forget job within a monitored batch.
@@ -121,6 +123,43 @@ public static class BatchJobServiceExtensions //TODO: move to library
     {
         var (action, counter) = Unwrap(batchContext);
         var jobId = action.ContinueJobWith(parentJobId, methodCall);
+        counter();
+        return jobId;
+    }
+
+    /// <summary>
+    ///     Enqueues a MediatR command within a monitored batch via <c>ISender.Send(command)</c>.
+    ///     Reads <see cref="QueueAttribute" /> from <typeparamref name="TCommand" /> to set the queue
+    ///     on the batch action, matching the behavior of
+    ///     <see cref="BackgroundJobClientExtensions.EnqueueCommand{TCommand}" /> for standalone jobs.
+    ///     Usage:
+    ///     <code>
+    /// batch.EnqueueCommandBatch(command, cancellationToken);
+    /// </code>
+    /// </summary>
+    /// <typeparam name="TCommand">
+    ///     The MediatR command type. May have <see cref="QueueAttribute" />,
+    ///     <see cref="AutomaticRetryAttribute" />, and/or
+    ///     <see cref="Filters.CommandDisplayNameAttribute" />.
+    /// </typeparam>
+    /// <param name="batchContext">The batch context object received in the StartMonitoredBatch action.</param>
+    /// <param name="command">The command instance to enqueue inside the batch.</param>
+    /// <param name="cancellationToken">Cancellation token passed to <c>ISender.Send</c>.</param>
+    /// <returns>The enqueued job ID.</returns>
+    public static string EnqueueCommandBatch<TCommand>(
+        this object batchContext,
+        TCommand command,
+        CancellationToken cancellationToken = default)
+        where TCommand : IRequest<Result>
+    {
+        var (action, counter) = Unwrap(batchContext);
+
+        var queue = typeof(TCommand).GetCustomAttribute<QueueAttribute>()?.Queue;
+
+        var jobId = queue is not null
+            ? action.Enqueue<ISender>(queue, sender => sender.Send(command, cancellationToken))
+            : action.Enqueue<ISender>(sender => sender.Send(command, cancellationToken));
+
         counter();
         return jobId;
     }

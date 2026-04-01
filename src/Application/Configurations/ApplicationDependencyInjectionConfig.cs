@@ -1,9 +1,6 @@
 using Application.Configurations.Extensions;
 using Application.Dispatchers.Logging;
-using Application.Helpers;
-using Application.Services;
-using Domain.Contracts.Helpers;
-using Domain.Contracts.Services;
+using HangFire.Jobs.Configurations;
 using IATec.Shared.Domain.Contracts.Dispatcher;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,12 +14,7 @@ public static class ApplicationDependencyInjectionConfig
 
         services.AddScoped<ILogDispatcher, LogDispatcher>();
 
-        // JobHelper is Singleton — it holds a ConcurrentDictionary of progress bars
-        // that needs to persist across job executions
-        services.AddSingleton<IJobHelper, JobHelper>();
-
-        // BatchJobService is Scoped — creates Hangfire Pro batches with automatic monitoring
-        services.AddScoped<IBatchJobService, BatchJobService>();
+        services.ConfigureHangFireJobs();
 
         return services;
     }

@@ -1,21 +1,23 @@
 using System.Globalization;
-using Application.Jobs;
 using Domain.Contracts.Helpers;
 using Domain.Contracts.Services;
 using Domain.Models.JobAggregate;
 using Hangfire;
+using HangFire.Jobs.Commands;
+using HangFire.Jobs.Extensions;
 using Microsoft.Extensions.Logging;
 
-namespace Application.Services;
+namespace HangFire.Jobs.Services;
 
 /// <summary>
 ///     Implementation of <see cref="IBatchJobService" /> using Hangfire Pro Batches.
-///     Creates monitored batches with a <see cref="BatchMonitorJob" /> that tracks progress
+///     Creates monitored batches with a <see cref="MonitorBatchCommand" /> that tracks progress
 ///     in real-time via polling and displays a Hangfire Console progress bar.
 ///     Batch metadata (name, creation time, total jobs, batch key) is stored in a Redis hash
-///     with the key pattern "batch:monitor:{batchId}" so the monitor job can read it.
+///     with the key pattern "batch:monitor:{batchId}" so the monitor command can read it.
 /// </summary>
 public class BatchJobService(
+    IBackgroundJobClient backgroundJobClient,
     IJobHelper jobHelper,
     ILogger<BatchJobService> logger) : IBatchJobService
 {
@@ -45,10 +47,13 @@ public class BatchJobService(
         // Store monitoring metadata in Redis (includes BatchKeyValue for progress reads)
         StoreMetadata(batchId, batchName, createdAt, totalJobs, batchKey.Value);
 
-        // Enqueue the monitor job as a standalone job (not a continuation)
-        // so it can poll and display a real-time progress bar
-        BackgroundJob.Enqueue<BatchMonitorJob>(monitor =>
-            monitor.ExecuteAsync(batchId, batchName, batchKey.Value, null, CancellationToken.None));
+        // Enqueue a standalone monitor command that polls batch progress and shows a real-time progress bar
+        backgroundJobClient.EnqueueCommand(new MonitorBatchCommand
+        {
+            BatchId = batchId,
+            BatchName = batchName,
+            BatchKeyValue = batchKey.Value
+        });
 
         logger.LogInformation(
             "Monitored batch created: BatchId={BatchId}, BatchName={BatchName}, TotalJobs={TotalJobs}, BatchKey={BatchKey}",
@@ -249,7 +254,7 @@ internal sealed class JobCountingBatchAction(IBatchAction inner, Action incremen
     /// <summary>
     ///     The underlying Hangfire Pro batch action.
     ///     User code should cast the <c>object</c> parameter to this type
-    ///     or use the extension methods in <see cref="BatchJobServiceExtensions" />.
+    ///     or use the extension methods in <see cref="Extensions.BatchJobServiceExtensions" />.
     /// </summary>
     public IBatchAction Inner { get; } = inner;
 

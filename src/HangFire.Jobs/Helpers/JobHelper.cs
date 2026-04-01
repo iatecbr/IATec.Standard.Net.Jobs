@@ -6,7 +6,7 @@ using Hangfire.Console;
 using Hangfire.Console.Progress;
 using Hangfire.Server;
 
-namespace Application.Helpers;
+namespace HangFire.Jobs.Helpers;
 
 /// <summary>
 ///     Thread-safe implementation of <see cref="IJobHelper" />.
@@ -172,38 +172,46 @@ public class JobHelper : IJobHelper
         try
         {
             using var connection = JobStorage.Current.GetConnection();
-            var hash = connection.GetAllEntriesFromHash(batchKey.Value);
-            if (hash is null || hash.Count == 0) return;
 
-            var total = int.Parse(hash.GetValueOrDefault("Total", "0"));
-            var completed = int.Parse(hash.GetValueOrDefault("Completed", "0"));
-            var failedCount = int.Parse(hash.GetValueOrDefault("Failed", "0"));
-
-            if (failed)
-                failedCount++;
-            else
-                completed++;
-
-            var totalProcessed = completed + failedCount;
-            var percentage = total > 0 ? totalProcessed * 100.0 / total : 0;
-
-            var updateData = new Dictionary<string, string>
+            // Distributed lock prevents concurrent workers from losing increments
+            // during the read-modify-write cycle on the batch progress hash.
+            var lockKey = $"batch-progress-lock:{batchKey.Value}";
+            using (connection.AcquireDistributedLock(lockKey, TimeSpan.FromSeconds(30)))
             {
-                { "Completed", completed.ToString() },
-                { "Failed", failedCount.ToString() },
-                { "LastUpdated", DateTime.UtcNow.ToString("O") }
-            };
+                var hash = connection.GetAllEntriesFromHash(batchKey.Value);
+                if (hash is null || hash.Count == 0) return;
 
-            if (totalProcessed >= total)
-            {
-                updateData.Add("CompletedAt", DateTime.UtcNow.ToString("O"));
-                updateData.Add("Status", "Completed");
+                var total = int.Parse(hash.GetValueOrDefault("Total", "0"));
+                var completed = int.Parse(hash.GetValueOrDefault("Completed", "0"));
+                var failedCount = int.Parse(hash.GetValueOrDefault("Failed", "0"));
+
+                if (failed)
+                    failedCount++;
+                else
+                    completed++;
+
+                var totalProcessed = completed + failedCount;
+                var percentage = total > 0 ? totalProcessed * 100.0 / total : 0;
+
+                var updateData = new Dictionary<string, string>
+                {
+                    { "Completed", completed.ToString() },
+                    { "Failed", failedCount.ToString() },
+                    { "LastUpdated", DateTime.UtcNow.ToString("O") }
+                };
+
+                if (totalProcessed >= total)
+                {
+                    updateData.Add("CompletedAt", DateTime.UtcNow.ToString("O"));
+                    updateData.Add("Status", "Completed");
+                }
+
+                connection.SetRangeInHash(batchKey.Value, updateData);
+
+                if (performContext is PerformContext context)
+                    context.SetJobParameter("BatchProgress",
+                        $"{totalProcessed}/{total} ({percentage:F1}%)");
             }
-
-            connection.SetRangeInHash(batchKey.Value, updateData);
-
-            if (performContext is PerformContext context)
-                context.SetJobParameter("BatchProgress", $"{totalProcessed}/{total} ({percentage:F1}%)");
         }
         catch
         {

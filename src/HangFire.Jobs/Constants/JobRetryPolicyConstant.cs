@@ -1,4 +1,4 @@
-namespace Application.Constants;
+namespace HangFire.Jobs.Constants;
 
 /// <summary>
 ///     Centralized retry policy constants for Hangfire jobs.
