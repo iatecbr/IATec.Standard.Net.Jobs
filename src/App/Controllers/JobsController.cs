@@ -1,8 +1,8 @@
-using Application.Features.Assets.Jobs;
+using HangFire.Jobs.Extensions;
+using Application.Features.Assets.Commands;
 using Asp.Versioning;
 using Domain.Contracts.Helpers;
 using Domain.Contracts.Services;
-using Domain.Models.AssetAggregate.Jobs;
 using Domain.Models.JobAggregate;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
@@ -16,8 +16,8 @@ namespace App.Controllers;
 ///     - v1: Deprecated — endpoints still work but will be removed in future versions.
 ///     - v2: Current stable — preferred version for new integrations.
 ///     Monitoring capabilities:
-///     1. Single job (fire-and-forget) — POST assets/process
-///     2. Batch via dedicated job — POST assets/process-batch
+///     1. Single job (fire-and-forget) via EnqueueCommand — POST assets/process
+///     2. Batch via EnqueueCommand with ProcessAssetBatchCommand — POST assets/process-batch
 ///     3. Batch monitoring — GET batch/{batchId}/monitor
 ///     4. Batch cancellation — POST batch/{batchId}/cancel
 ///     5. Custom batch progress tracking — GET batch/{batchKey}/progress
@@ -37,17 +37,22 @@ public class JobsController(
 
     /// <summary>
     ///     [DEPRECATED] Submits a single asset processing job to Hangfire (fire-and-forget).
-    ///     Use v2 endpoint instead.
+    ///     Uses <c>EnqueueCommand</c> to enqueue a <see cref="ProcessAssetCommand" />
+    ///     as a Hangfire job via <c>ISender.Send(command)</c>.
+    ///     Note: validation runs inside the Hangfire worker (MediatR pipeline), NOT during
+    ///     the HTTP request. Invalid commands will fail the job, not return 400.
+    ///     Use v2 endpoint instead for synchronous validation before enqueue.
     /// </summary>
     [MapToApiVersion(1.0)]
     [HttpPost("assets/process")]
     [ProducesResponseType(typeof(object), StatusCodes.Status202Accepted)]
-    public IActionResult SubmitProcessAssetJobV1([FromBody] ProcessAssetDataJobDto job)
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    public IActionResult SubmitProcessAssetJobV1(
+        [FromBody] ProcessAssetCommand command)
     {
-        var jobId = backgroundJobClient.Enqueue<ProcessAssetJob>(executor =>
-            executor.ExecuteAsync(job, null, CancellationToken.None));
+        var jobId = backgroundJobClient.EnqueueCommand(command);
 
-        return Accepted(new { Message = "Job submitted successfully", JobId = jobId, job.AssetId });
+        return Accepted(new { Message = "Job submitted successfully", JobId = jobId, command.AssetId });
     }
 
     /// <summary>
@@ -58,19 +63,21 @@ public class JobsController(
     [HttpPost("assets/process-batch")]
     [ProducesResponseType(typeof(object), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public IActionResult SubmitProcessAssetBatchV1([FromBody] ProcessAssetDataJobDto[] jobs)
+    public IActionResult SubmitProcessAssetBatchV1([FromBody] ProcessAssetCommand[] commands)
     {
-        if (jobs.Length == 0)
-            return BadRequest(new { Message = "At least one job is required" });
+        if (commands.Length == 0)
+            return BadRequest(new { Message = "At least one command is required" });
 
-        var jobId = backgroundJobClient.Enqueue<ProcessAssetBatchJob>(batchJob =>
-            batchJob.ExecuteAsync(jobs, null, CancellationToken.None));
+        var jobId = backgroundJobClient.EnqueueCommand(new ProcessAssetBatchCommand
+        {
+            Commands = commands
+        });
 
         return Accepted(new
         {
-            Message = $"Batch job submitted for {jobs.Length} assets",
+            Message = $"Batch job submitted for {commands.Length} assets",
             JobId = jobId,
-            TotalAssets = jobs.Length
+            TotalAssets = commands.Length
         });
     }
 
@@ -80,48 +87,58 @@ public class JobsController(
 
     /// <summary>
     ///     Submits a single asset processing job to Hangfire (fire-and-forget).
-    ///     The job runs through the full BaseJob lifecycle: Start → RunAsync → Finish → Finally.
-    ///     Monitor individual job status via the Hangfire Dashboard.
+    ///     Uses <c>BackgroundJobClientExtensions.EnqueueCommand</c> to enqueue
+    ///     a <see cref="ProcessAssetCommand" /> as a Hangfire job via <c>ISender.Send(command)</c>.
+    ///     The <c>[Queue]</c> attribute on <see cref="ProcessAssetCommand" /> is read by reflection
+    ///     and passed to Hangfire's <c>Enqueue(queue, ...)</c> overload, setting <c>Job.Queue</c> natively.
+    ///     The actual business logic runs later inside the Hangfire worker when
+    ///     <see cref="ProcessAssetCommandHandler" /> handles the command via MediatR.
+    ///     Note: validation runs inside the Hangfire worker (MediatR pipeline), NOT during
+    ///     the HTTP request. Invalid commands will fail the job, not return 400.
     /// </summary>
     [MapToApiVersion(2.0)]
     [HttpPost("assets/process")]
     [ProducesResponseType(typeof(object), StatusCodes.Status202Accepted)]
-    public IActionResult SubmitProcessAssetJob([FromBody] ProcessAssetDataJobDto job)
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    public IActionResult SubmitProcessAssetJob(
+        [FromBody] ProcessAssetCommand command)
     {
-        var jobId = backgroundJobClient.Enqueue<ProcessAssetJob>(executor =>
-            executor.ExecuteAsync(job, null, CancellationToken.None));
+        var jobId = backgroundJobClient.EnqueueCommand(command);
 
-        return Accepted(new { Message = "Job submitted successfully", JobId = jobId, job.AssetId });
+        return Accepted(new { Message = "Job submitted successfully", JobId = jobId, command.AssetId });
     }
 
     /// <summary>
-    ///     Submits a batch of asset processing jobs via a dedicated batch job.
-    ///     This enqueues a single ProcessAssetBatchJob that internally creates a monitored Hangfire Pro batch.
-    ///     Each asset becomes an individual ProcessAssetJob inside the batch.
-    ///     A BatchMonitorJob continuation runs automatically when all jobs complete.
+    ///     Submits a batch of asset processing jobs via a <see cref="ProcessAssetBatchCommand" />.
+    ///     This enqueues a single command that internally creates a monitored Hangfire Pro batch.
+    ///     Each asset becomes an individual <see cref="ProcessAssetCommand" /> inside the batch.
+    ///     A <see cref="HangFire.Jobs.Commands.MonitorBatchCommand" /> is automatically enqueued by
+    ///     the batch service for real-time progress tracking.
     ///     Monitoring chain:
-    ///     - ProcessAssetBatchJob → creates batch → enqueues N × ProcessAssetJob → BatchMonitorJob continuation
+    ///     - ProcessAssetBatchCommand → creates batch → enqueues N × ProcessAssetCommand → MonitorBatchCommand
     ///     - Query batch status via GET batch/{batchId}/monitor
     /// </summary>
     [MapToApiVersion(2.0)]
     [HttpPost("assets/process-batch")]
     [ProducesResponseType(typeof(object), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public IActionResult SubmitProcessAssetBatch([FromBody] ProcessAssetDataJobDto[] jobs)
+    public IActionResult SubmitProcessAssetBatch([FromBody] IReadOnlyCollection<ProcessAssetCommand> commands)
     {
-        if (jobs.Length == 0)
-            return BadRequest(new { Message = "At least one job is required" });
+        if (commands.Count == 0)
+            return BadRequest(new { Message = "At least one command is required" });
 
-        var jobId = backgroundJobClient.Enqueue<ProcessAssetBatchJob>(batchJob =>
-            batchJob.ExecuteAsync(jobs, null, CancellationToken.None));
+        var jobId = backgroundJobClient.EnqueueCommand(new ProcessAssetBatchCommand
+        {
+            Commands = commands
+        });
 
         return Accepted(new
         {
-            Message = $"Batch job submitted for {jobs.Length} assets",
+            Message = $"Batch job submitted for {commands.Count} assets",
             JobId = jobId,
-            TotalAssets = jobs.Length,
+            TotalAssets = commands.Count,
             Note =
-                "The batch will be created by ProcessAssetBatchJob. Monitor via GET batch/{{batchId}}/monitor after the job starts."
+                "The batch will be created by ProcessAssetBatchCommandHandler. Monitor via GET batch/{{batchId}}/monitor after the job starts."
         });
     }
 

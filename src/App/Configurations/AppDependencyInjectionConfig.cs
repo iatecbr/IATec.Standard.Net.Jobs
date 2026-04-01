@@ -12,10 +12,13 @@ public static class AppDependencyInjectionConfig
         // Map Controllers (must be before AddVersioning so route constraints are registered)
         services.AddControllers();
 
+        // Localization required by IATec.Shared.Behaviors (ExceptionPipelineBehavior uses IStringLocalizer)
+        services.AddLocalization();
+
         // Add Local Extensions
         services.AddScalar()
             .AddCorsPolicy()
-            .AddHealthCheck(environment)
+            .AddHealthCheck(configuration, environment)
             .AddVersioning()
             .AddOptions(configuration)
             .AddHangfire(configuration)
@@ -30,8 +33,7 @@ public static class AppDependencyInjectionConfig
         app.UseAppScalar()
             .UseAppCorsPolicy()
             .UseAppHealthChecks()
-            .UseAppHangfire()
-            .ApplyMigrations();
+            .UseAppHangfire();
 
         app.UseRouting();
         app.MapControllers();
