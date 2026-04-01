@@ -1,22 +1,20 @@
-using Application.Features.Assets.Jobs;
+using Application.Features.Assets.Commands;
 using Domain.Contracts.Helpers;
 using Domain.Contracts.Services;
-using Domain.Models.AssetAggregate.Jobs;
 using Domain.Models.JobAggregate;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
+using HangFire.Jobs.Contracts;
 using NSubstitute;
 using Xunit;
 
-namespace Application.Tests.Features.Assets.Jobs;
+namespace Application.Tests.Features.Assets.Commands;
 
-public class ProcessAssetBatchJobTests
+public class ProcessAssetBatchCommandHandlerTests
 {
     private readonly IBatchJobService _batchJobService = Substitute.For<IBatchJobService>();
     private readonly IJobHelper _jobHelper = Substitute.For<IJobHelper>();
-    private readonly ILogger<ProcessAssetBatchJob> _logger = Substitute.For<ILogger<ProcessAssetBatchJob>>();
+    private readonly IPerformContextAccessor _performContextAccessor = Substitute.For<IPerformContextAccessor>();
 
-    public static TheoryData<int> ValidAssetCounts => new() { 1, 3, 5, 10 };
+    public static TheoryData<int> ValidAssetCounts => [1, 3, 5, 10];
 
     public static TheoryData<int, string> AssetCountsWithBatchIds => new()
     {
@@ -25,19 +23,20 @@ public class ProcessAssetBatchJobTests
         { 1, "batch-single-001" }
     };
 
-    public static TheoryData<int> BatchNameAssetCounts => new() { 3, 7, 15 };
+    public static TheoryData<int> BatchNameAssetCounts => [3, 7, 15];
 
-    private ProcessAssetBatchJob CreateSut()
+    private ProcessAssetBatchCommandHandler CreateSut()
     {
-        return new ProcessAssetBatchJob(_jobHelper, _logger, _batchJobService);
+        return new ProcessAssetBatchCommandHandler(
+            _jobHelper, _performContextAccessor, _batchJobService);
     }
 
-    private static ProcessAssetDataJobDto[] CreateAssets(int count)
+    private static ProcessAssetCommand[] CreateCommands(int count)
     {
-        return Enumerable.Range(1, count).Select(i => new ProcessAssetDataJobDto
+        return Enumerable.Range(1, count).Select(i => new ProcessAssetCommand
         {
             AssetId = Guid.NewGuid(),
-            Code = $"ASSET-{i:D3}",
+            Code = $"ASSET-{i:D4}",
             Name = $"Asset {i}",
             Value = i * 10m
         }).ToArray();
@@ -58,19 +57,22 @@ public class ProcessAssetBatchJobTests
         });
     }
 
-    [Theory]
+    [Theory(DisplayName = "Handle with valid commands should call StartMonitoredBatch")]
+    [Trait("Category", "ProcessAssetBatchCommand")]
     [MemberData(nameof(ValidAssetCounts))]
-    public async Task ExecuteAsync_WithValidAssets_ShouldCallStartMonitoredBatch(int assetCount)
+    public async Task Handle_WithValidCommands_ShouldCallStartMonitoredBatch(int assetCount)
     {
         // Arrange
         var sut = CreateSut();
-        var assets = CreateAssets(assetCount);
+        var commands = CreateCommands(assetCount);
+        var batchCommand = new ProcessAssetBatchCommand { Commands = commands };
         SetupBatchServiceReturns();
 
         // Act
-        await sut.ExecuteAsync(assets, null, CancellationToken.None);
+        var result = await sut.Handle(batchCommand, CancellationToken.None);
 
         // Assert
+        Assert.True(result.IsSuccess);
         _batchJobService.Received(1).StartMonitoredBatch(
             Arg.Any<string>(),
             Arg.Any<Action<object, string>>());
@@ -82,20 +84,24 @@ public class ProcessAssetBatchJobTests
         _jobHelper.DidNotReceive().Error(Arg.Any<object?>(), Arg.Any<string>());
     }
 
-    [Fact]
-    public async Task ExecuteAsync_WithEmptyAssets_ShouldReturnFailResult()
+    [Theory(DisplayName = "Handle with empty commands should return fail result")]
+    [Trait("Category", "ProcessAssetBatchCommand")]
+    [InlineData(0)]
+    public async Task Handle_WithEmptyCommands_ShouldReturnFailResult(int assetCount)
     {
         // Arrange
         var sut = CreateSut();
-        var assets = Array.Empty<ProcessAssetDataJobDto>();
+        var commands = CreateCommands(assetCount);
+        var batchCommand = new ProcessAssetBatchCommand { Commands = commands };
 
         // Act
-        await sut.ExecuteAsync(assets, null, CancellationToken.None);
+        var result = await sut.Handle(batchCommand, CancellationToken.None);
 
-        // Assert — NotifyErrorAndStop calls Error, and BaseJob sees the failed Result and calls Error again
+        // Assert — NotifyErrorAndStop calls Error, and BaseCommand sees the failed Result and calls Error again
+        Assert.True(result.IsFailed);
         _jobHelper.Received().Error(Arg.Any<object?>(), Arg.Is<string>(s => s.Contains("No assets provided")));
 
-        // Should NOT call StartMonitoredBatch since there are no assets
+        // Should NOT call StartMonitoredBatch since there are no commands
         _batchJobService.DidNotReceive().StartMonitoredBatch(
             Arg.Any<string>(),
             Arg.Any<Action<object, string>>());
@@ -107,34 +113,36 @@ public class ProcessAssetBatchJobTests
         _jobHelper.Received(1).Finally(null);
     }
 
-    [Theory]
+    [Theory(DisplayName = "Handle with valid commands should log batch info")]
+    [Trait("Category", "ProcessAssetBatchCommand")]
     [MemberData(nameof(AssetCountsWithBatchIds))]
-    public async Task ExecuteAsync_WithValidAssets_ShouldLogBatchInfo(int assetCount, string batchId)
+    public async Task Handle_WithValidCommands_ShouldLogBatchInfo(int assetCount, string batchId)
     {
         // Arrange
         var sut = CreateSut();
-        var assets = CreateAssets(assetCount);
+        var commands = CreateCommands(assetCount);
+        var batchCommand = new ProcessAssetBatchCommand { Commands = commands };
         SetupBatchServiceReturns(batchId);
 
         // Act
-        await sut.ExecuteAsync(assets, null, CancellationToken.None);
+        await sut.Handle(batchCommand, CancellationToken.None);
 
-        // Assert — NotifyInfo is called twice:
-        // 1. "Creating monitored batch for N assets..."
-        // 2. "Batch created successfully | BatchId: ... | Total jobs: N"
+        // Assert — NotifyInfo is called with batch creation message and success message
         _jobHelper.Received(1).Info(Arg.Any<object?>(),
             Arg.Is<string>(s => s.Contains(assetCount.ToString()) && s.Contains("assets")));
         _jobHelper.Received(1).Info(Arg.Any<object?>(),
             Arg.Is<string>(s => s.Contains(batchId) && s.Contains(assetCount.ToString())));
     }
 
-    [Theory]
+    [Theory(DisplayName = "Handle should follow lifecycle order")]
+    [Trait("Category", "ProcessAssetBatchCommand")]
     [MemberData(nameof(ValidAssetCounts))]
-    public async Task ExecuteAsync_ShouldFollowLifecycleOrder(int assetCount)
+    public async Task Handle_ShouldFollowLifecycleOrder(int assetCount)
     {
         // Arrange
         var sut = CreateSut();
-        var assets = CreateAssets(assetCount);
+        var commands = CreateCommands(assetCount);
+        var batchCommand = new ProcessAssetBatchCommand { Commands = commands };
         SetupBatchServiceReturns();
 
         var callOrder = new List<string>();
@@ -149,26 +157,28 @@ public class ProcessAssetBatchJobTests
             .Do(_ => callOrder.Add("Finally"));
 
         // Act
-        await sut.ExecuteAsync(assets, null, CancellationToken.None);
+        await sut.Handle(batchCommand, CancellationToken.None);
 
         // Assert
-        callOrder.Should().StartWith("Start");
-        callOrder.Should().EndWith("Finally");
-        callOrder.IndexOf("Finish").Should().BeGreaterThan(callOrder.IndexOf("Start"));
-        callOrder.IndexOf("Finally").Should().BeGreaterThan(callOrder.IndexOf("Finish"));
+        Assert.Equal("Start", callOrder[0]);
+        Assert.Equal("Finally", callOrder[^1]);
+        Assert.True(callOrder.IndexOf("Finish") > callOrder.IndexOf("Start"));
+        Assert.True(callOrder.IndexOf("Finally") > callOrder.IndexOf("Finish"));
     }
 
-    [Theory]
+    [Theory(DisplayName = "Handle with multiple commands should pass correct batch name")]
+    [Trait("Category", "ProcessAssetBatchCommand")]
     [MemberData(nameof(BatchNameAssetCounts))]
-    public async Task ExecuteAsync_WithMultipleAssets_ShouldPassCorrectBatchName(int assetCount)
+    public async Task Handle_WithMultipleCommands_ShouldPassCorrectBatchName(int assetCount)
     {
         // Arrange
         var sut = CreateSut();
-        var assets = CreateAssets(assetCount);
+        var commands = CreateCommands(assetCount);
+        var batchCommand = new ProcessAssetBatchCommand { Commands = commands };
         SetupBatchServiceReturns();
 
         // Act
-        await sut.ExecuteAsync(assets, null, CancellationToken.None);
+        await sut.Handle(batchCommand, CancellationToken.None);
 
         // Assert — batch name should include the asset count: "Process N Assets"
         _batchJobService.Received(1).StartMonitoredBatch(
