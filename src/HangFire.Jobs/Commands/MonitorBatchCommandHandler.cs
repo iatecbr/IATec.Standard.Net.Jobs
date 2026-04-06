@@ -2,9 +2,9 @@ using System.Globalization;
 using Domain.Contracts.Helpers;
 using FluentResults;
 using Hangfire;
-using Hangfire.Storage;
 using HangFire.Jobs.Base;
 using HangFire.Jobs.Contracts;
+using Hangfire.Storage;
 
 namespace HangFire.Jobs.Commands;
 
@@ -22,6 +22,7 @@ public sealed class MonitorBatchCommandHandler(
     : BaseCommand<MonitorBatchCommand>(jobHelper, performContextAccessor, "[BatchMonitor] ")
 {
     private const int PollingIntervalMs = 500;
+    private const int MaxMonitorDurationMinutes = 30;
 
     /// <inheritdoc />
     protected override async Task<Result> HandleAsync(
@@ -70,9 +71,11 @@ public sealed class MonitorBatchCommandHandler(
             NotifyInfo(
                 $"Monitoring batch '{request.BatchName}' | {totalJobs} jobs | ID: {request.BatchId}");
 
-            // Poll progress until all jobs are done
+            // Poll progress until all jobs are done or timeout is reached
             var lastPercentage = -1;
-            while (!cancellationToken.IsCancellationRequested)
+            var deadline = DateTime.UtcNow.AddMinutes(MaxMonitorDurationMinutes);
+
+            while (!cancellationToken.IsCancellationRequested && DateTime.UtcNow < deadline)
             {
                 var (completed, failed, total) = ReadProgress(connection, request.BatchKeyValue);
 
@@ -90,6 +93,12 @@ public sealed class MonitorBatchCommandHandler(
                     break;
 
                 await Task.Delay(PollingIntervalMs, cancellationToken);
+            }
+
+            if (DateTime.UtcNow >= deadline)
+            {
+                NotifyWarn(
+                    $"Batch '{request.BatchName}' monitor timed out after {MaxMonitorDurationMinutes} minutes.");
             }
 
             // Record completion

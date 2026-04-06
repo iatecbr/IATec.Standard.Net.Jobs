@@ -36,6 +36,16 @@ public class RedisOption
         }
     }
 
+    /// <summary>
+    ///     Binds from the "ConnectionStrings" section.
+    ///     appsettings.json format: "ConnectionStrings": { "RedisConnection": "localhost:6379/1" }
+    /// </summary>
+    public string RedisConnection
+    {
+        get => ConnectionString;
+        set => ConnectionString = value;
+    }
+
     private void ParseDatabase()
     {
         _parsedDatabase = null;
@@ -50,15 +60,5 @@ public class RedisOption
         var databasePart = _connectionString[(slashIndex + 1)..];
         if (int.TryParse(databasePart, out var database))
             _parsedDatabase = database;
-    }
-
-    /// <summary>
-    ///     Binds from the "ConnectionStrings" section.
-    ///     appsettings.json format: "ConnectionStrings": { "RedisConnection": "localhost:6379/1" }
-    /// </summary>
-    public string RedisConnection
-    {
-        get => ConnectionString;
-        set => ConnectionString = value;
     }
 }

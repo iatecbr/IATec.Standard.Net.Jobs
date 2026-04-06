@@ -1,5 +1,5 @@
-using Hangfire.Server;
 using HangFire.Jobs.Contracts;
+using Hangfire.Server;
 
 namespace HangFire.Jobs.Helpers;
 
@@ -24,10 +24,16 @@ public sealed class PerformContextAccessor : IPerformContextAccessor
     ///     Called by <see cref="Filters.CommandAttributeJobFilter" /> which runs outside DI
     ///     as a global Hangfire filter.
     /// </summary>
-    internal static void Set(PerformContext? context) => CurrentContext.Value = context;
+    internal static void Set(PerformContext? context)
+    {
+        CurrentContext.Value = context;
+    }
 
     /// <summary>
     ///     Clears the <see cref="PerformContext" /> for the current async scope.
     /// </summary>
-    internal static void Clear() => CurrentContext.Value = null;
+    internal static void Clear()
+    {
+        CurrentContext.Value = null;
+    }
 }

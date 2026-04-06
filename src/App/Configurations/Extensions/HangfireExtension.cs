@@ -1,19 +1,22 @@
 using System.Reflection;
 using App.Configurations.Filters;
 using App.Configurations.Options;
-using HangFire.Jobs.Filters;
-using Persistence.Options;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.Console;
 using Hangfire.Dashboard;
+using HangFire.Jobs.Filters;
 using Hangfire.Pro.Redis;
 using MediatR;
+using Persistence.Options;
 
 namespace App.Configurations.Extensions;
 
 public static class HangfireExtension
 {
+    private static readonly Lock ConsoleInitLock = new();
+    private static bool _consoleInitialized;
+
     internal static IServiceCollection AddHangfire(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -33,8 +36,19 @@ public static class HangfireExtension
                     Database = redisOption.Database
                 })
                 .UseBatches()
-                .UseThrottling()
-                .UseConsole();
+                .UseThrottling();
+
+            // UseConsole() throws InvalidOperationException if called more than once per process.
+            // Multiple WebApplicationFactory instances in integration tests trigger this callback
+            // multiple times, so guard with a static flag.
+            lock (ConsoleInitLock)
+            {
+                if (!_consoleInitialized)
+                {
+                    config.UseConsole();
+                    _consoleInitialized = true;
+                }
+            }
 
             // Remove Hangfire's built-in AutomaticRetryAttribute (Attempts=10, Order=20)
             // to prevent it from overriding retry policies defined on command records.
