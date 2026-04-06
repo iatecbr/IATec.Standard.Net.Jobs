@@ -1,4 +1,4 @@
-using Domain.Models.JobAggregate;
+using Domain.Helpers;
 
 namespace Domain.Contracts.Services;
 

@@ -1,5 +1,5 @@
 using Domain.Contracts.Helpers;
-using Domain.Models.JobAggregate;
+using Domain.Helpers;
 using FluentResults;
 using HangFire.Jobs.Base;
 using HangFire.Jobs.Contracts;
@@ -49,7 +49,7 @@ public sealed class ProcessAssetCommandHandler(
         if (!string.IsNullOrEmpty(request.BatchKeyValue))
         {
             var batchKey = BatchKey.FromRawValue(request.BatchKeyValue);
-            JobHelper.IncrementBatchProgress(batchKey, PerformContext, false);
+            JobHelper.IncrementBatchProgress(batchKey, PerformContext);
         }
 
         NotifyInfo($"Asset {request.Code} processed successfully.");

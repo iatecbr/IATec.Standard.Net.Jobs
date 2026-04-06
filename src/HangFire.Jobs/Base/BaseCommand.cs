@@ -1,8 +1,8 @@
+using Domain.Contracts.Helpers;
 using FluentResults;
 using Hangfire.Console;
-using Hangfire.Server;
 using HangFire.Jobs.Contracts;
-using Domain.Contracts.Helpers;
+using Hangfire.Server;
 using MediatR;
 
 namespace HangFire.Jobs.Base;

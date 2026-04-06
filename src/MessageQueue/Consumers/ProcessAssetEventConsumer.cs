@@ -19,13 +19,11 @@ public sealed class ProcessAssetEventConsumer(
     {
         var message = context.Message;
 
-        var command = new ProcessAssetCommand
-        {
-            AssetId = message.AssetId,
-            Code = message.Code,
-            Name = message.Name,
-            Value = message.Value
-        };
+        var command = new ProcessAssetCommand(
+            message.AssetId,
+            message.Code,
+            message.Name,
+            message.Value);
 
         await sender.Send(command, context.CancellationToken);
     }

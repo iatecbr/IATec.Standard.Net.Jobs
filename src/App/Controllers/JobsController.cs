@@ -1,10 +1,10 @@
-using HangFire.Jobs.Extensions;
 using Application.Features.Assets.Commands;
 using Asp.Versioning;
 using Domain.Contracts.Helpers;
 using Domain.Contracts.Services;
-using Domain.Models.JobAggregate;
+using Domain.Helpers;
 using Hangfire;
+using HangFire.Jobs.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace App.Controllers;
@@ -68,10 +68,7 @@ public class JobsController(
         if (commands.Length == 0)
             return BadRequest(new { Message = "At least one command is required" });
 
-        var jobId = backgroundJobClient.EnqueueCommand(new ProcessAssetBatchCommand
-        {
-            Commands = commands
-        });
+        var jobId = backgroundJobClient.EnqueueCommand(new ProcessAssetBatchCommand(commands));
 
         return Accepted(new
         {
@@ -127,10 +124,7 @@ public class JobsController(
         if (commands.Count == 0)
             return BadRequest(new { Message = "At least one command is required" });
 
-        var jobId = backgroundJobClient.EnqueueCommand(new ProcessAssetBatchCommand
-        {
-            Commands = commands
-        });
+        var jobId = backgroundJobClient.EnqueueCommand(new ProcessAssetBatchCommand(commands));
 
         return Accepted(new
         {

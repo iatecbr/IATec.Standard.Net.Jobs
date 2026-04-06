@@ -1,7 +1,7 @@
 using System.Globalization;
 using Domain.Contracts.Helpers;
 using Domain.Contracts.Services;
-using Domain.Models.JobAggregate;
+using Domain.Helpers;
 using Hangfire;
 using HangFire.Jobs.Commands;
 using HangFire.Jobs.Extensions;
@@ -48,12 +48,10 @@ public class BatchJobService(
         StoreMetadata(batchId, batchName, createdAt, totalJobs, batchKey.Value);
 
         // Enqueue a standalone monitor command that polls batch progress and shows a real-time progress bar
-        backgroundJobClient.EnqueueCommand(new MonitorBatchCommand
-        {
-            BatchId = batchId,
-            BatchName = batchName,
-            BatchKeyValue = batchKey.Value
-        });
+        backgroundJobClient.EnqueueCommand(new MonitorBatchCommand(
+            batchId,
+            batchName,
+            batchKey.Value));
 
         logger.LogInformation(
             "Monitored batch created: BatchId={BatchId}, BatchName={BatchName}, TotalJobs={TotalJobs}, BatchKey={BatchKey}",

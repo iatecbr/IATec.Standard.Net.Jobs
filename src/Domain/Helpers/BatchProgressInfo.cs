@@ -1,4 +1,4 @@
-namespace Domain.Models.JobAggregate;
+namespace Domain.Helpers;
 
 /// <summary>
 ///     Represents progress information for a batch of jobs.

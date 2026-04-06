@@ -1,4 +1,4 @@
-namespace Domain.Models.JobAggregate;
+namespace Domain.Helpers;
 
 /// <summary>
 ///     Monitoring result for a batch, combining Hangfire Pro batch state

@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using Domain.Contracts.Helpers;
-using Domain.Models.JobAggregate;
+using Domain.Helpers;
 using Hangfire;
 using Hangfire.Console;
 using Hangfire.Console.Progress;
@@ -179,6 +179,7 @@ public class JobHelper : IJobHelper
             using (connection.AcquireDistributedLock(lockKey, TimeSpan.FromSeconds(30)))
             {
                 var hash = connection.GetAllEntriesFromHash(batchKey.Value);
+
                 if (hash is null || hash.Count == 0) return;
 
                 var total = int.Parse(hash.GetValueOrDefault("Total", "0"));

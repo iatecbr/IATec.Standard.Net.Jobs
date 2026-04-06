@@ -13,26 +13,19 @@ namespace HangFire.Jobs.Commands;
 ///     When done, records total execution time and final status.
 ///     This command is automatically enqueued by <see cref="Services.BatchJobService" />.
 ///     It should NOT be enqueued manually.
+///     All properties are positional constructor parameters so that Newtonsoft.Json (used by
+///     Hangfire for serialization) can correctly round-trip the record through its constructor.
 /// </summary>
 [AutomaticRetry(Attempts = JobRetryPolicyConstant.NoRetry)]
 [Queue(JobRetryPolicyConstant.DefaultQueue)]
 [CommandDisplayName("Monitor Batch: {0}")]
-public sealed record MonitorBatchCommand : IRequest<Result>
+public sealed record MonitorBatchCommand(
+    string BatchId,
+    string BatchName,
+    string BatchKeyValue) : IRequest<Result>
 {
-    /// <summary>
-    ///     The Hangfire Pro batch ID being monitored.
-    /// </summary>
-    public string BatchId { get; init; } = string.Empty;
-
-    /// <summary>
-    ///     Human-readable name of the batch.
-    /// </summary>
-    public string BatchName { get; init; } = string.Empty;
-
-    /// <summary>
-    ///     The batch progress Redis key for reading completed/failed counts.
-    /// </summary>
-    public string BatchKeyValue { get; init; } = string.Empty;
-
-    public override string ToString() => BatchName;
+    public override string ToString()
+    {
+        return BatchName;
+    }
 }

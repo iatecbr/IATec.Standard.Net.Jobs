@@ -1,4 +1,4 @@
-namespace Domain.Models.JobAggregate;
+namespace Domain.Helpers;
 
 /// <summary>
 ///     Metadata returned when a monitored batch is created.

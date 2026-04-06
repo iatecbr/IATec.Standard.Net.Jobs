@@ -1,4 +1,4 @@
-namespace Domain.Models.JobAggregate;
+namespace Domain.Helpers;
 
 /// <summary>
 ///     Typed wrapper for batch progress tracking keys.
