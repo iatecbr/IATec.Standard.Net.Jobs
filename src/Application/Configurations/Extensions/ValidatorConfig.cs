@@ -1,5 +1,5 @@
 using Application.Configurations.Factories;
-using Application.Features.Assets.Validators;
+using Application.Features.Assets.Commands;
 using FluentValidation;
 using IATec.Shared.Domain.Contracts.Validator;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +10,7 @@ public static class ValidatorConfig
 {
     public static IServiceCollection AddValidators(this IServiceCollection services)
     {
-        services.AddValidatorsFromAssemblyContaining<CreateAssetValidator>();
+        services.AddValidatorsFromAssemblyContaining<ProcessAssetCommandValidator>();
         services.AddScoped<IValidatorGeneric, ValidatorFactory>();
 
         return services;

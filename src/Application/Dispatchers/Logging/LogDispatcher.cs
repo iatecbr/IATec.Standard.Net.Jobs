@@ -22,7 +22,7 @@ public class LogDispatcher(ILogService logService, IOptions<ContainerOption> opt
             Source = source,
             Owner = owner,
             Action = action,
-            Content = content?.ToString()!,
+            Content = content?.ToString() ?? string.Empty,
             Date = DateTime.UtcNow
         };
 
