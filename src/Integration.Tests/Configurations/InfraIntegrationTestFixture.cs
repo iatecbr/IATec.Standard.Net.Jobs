@@ -24,9 +24,9 @@ public sealed class InfraIntegrationTestFixture : WebApplicationFactory<Program>
 
     public IConnectionMultiplexer Connection { get; private set; } = null!;
 
-    public string RedisConnectionString { get; private set; } = string.Empty;
+    private string RedisConnectionString { get; set; } = string.Empty;
 
-    public string LocalStackServiceUrl { get; private set; } = string.Empty;
+    private string LocalStackServiceUrl { get; set; } = string.Empty;
 
     public async Task InitializeAsync()
     {
@@ -63,7 +63,7 @@ public sealed class InfraIntegrationTestFixture : WebApplicationFactory<Program>
 
         // Stop the WebApplicationFactory host (Hangfire server + MassTransit bus) BEFORE
         // tearing down containers, so no component tries to reach an already-stopped container.
-        Dispose();
+        await DisposeAsync();
 
         Connection.Dispose();
 

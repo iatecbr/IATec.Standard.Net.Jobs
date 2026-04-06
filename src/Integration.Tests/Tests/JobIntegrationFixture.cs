@@ -14,7 +14,7 @@ public sealed class JobIntegrationFixture
         { Guid.NewGuid(), "ASSET-0002", "Integration Test Asset Beta", 999.99m }
     };
 
-    public static TheoryData<int> BatchSizes => new() { 2, 5 };
+    public static TheoryData<int> BatchSizes => [2, 5];
 
     public static TheoryData<Guid, string, string, decimal> AssetEvents => new()
     {
