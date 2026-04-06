@@ -4,8 +4,8 @@ namespace Integration.Tests.Helpers;
 
 public sealed class ConsumedMessageStore
 {
-    private readonly List<ProcessAssetEvent> _messages = [];
     private readonly object _lock = new();
+    private readonly List<ProcessAssetEvent> _messages = [];
 
     public void Add(ProcessAssetEvent message)
     {
