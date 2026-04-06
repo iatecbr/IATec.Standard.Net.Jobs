@@ -1,8 +1,8 @@
 using Amazon.SimpleNotificationService;
 using Amazon.SQS;
-using MessageQueue.Options;
 using MassTransit;
 using MessageQueue.Consumers;
+using MessageQueue.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 

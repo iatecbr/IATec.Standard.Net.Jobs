@@ -22,7 +22,8 @@ public static class BackgroundJobClientExtensions
     ///     Enqueues a MediatR command via <c>ISender.Send(command)</c> as a Hangfire fire-and-forget job.
     ///     Reads <see cref="QueueAttribute" /> from <typeparamref name="TCommand" /> to set the queue
     ///     on the <see cref="Hangfire.Common.Job" /> object (not just <see cref="Hangfire.States.EnqueuedState" />).
-    ///     Falls back to <see cref="Hangfire.States.EnqueuedState.DefaultQueue" /> if no <see cref="QueueAttribute" /> is present.
+    ///     Falls back to <see cref="Hangfire.States.EnqueuedState.DefaultQueue" /> if no <see cref="QueueAttribute" /> is
+    ///     present.
     /// </summary>
     /// <typeparam name="TCommand">
     ///     The MediatR command type. May have <see cref="QueueAttribute" />,
@@ -42,12 +43,9 @@ public static class BackgroundJobClientExtensions
         var queue = typeof(TCommand).GetCustomAttribute<QueueAttribute>()?.Queue;
 
         if (queue is not null)
-        {
             return client.Enqueue<ISender>(queue,
                 sender => sender.Send(command, cancellationToken));
-        }
 
-        return client.Enqueue<ISender>(
-            sender => sender.Send(command, cancellationToken));
+        return client.Enqueue<ISender>(sender => sender.Send(command, cancellationToken));
     }
 }

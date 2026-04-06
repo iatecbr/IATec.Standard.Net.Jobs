@@ -1,7 +1,7 @@
 using App.Configurations.Options;
+using IATec.Shared.Domain.Options;
 using MessageQueue.Options;
 using Persistence.Options;
-using IATec.Shared.Domain.Options;
 
 namespace App.Configurations.Extensions;
 

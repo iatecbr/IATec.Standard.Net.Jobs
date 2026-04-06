@@ -2,10 +2,10 @@ using System.Reflection;
 using Hangfire;
 using Hangfire.Client;
 using Hangfire.Common;
+using HangFire.Jobs.Helpers;
 using Hangfire.Server;
 using Hangfire.States;
 using Hangfire.Storage;
-using HangFire.Jobs.Helpers;
 using MediatR;
 
 namespace HangFire.Jobs.Filters;
@@ -15,29 +15,40 @@ namespace HangFire.Jobs.Filters;
 ///     <see cref="QueueAttribute" />, and <see cref="CommandDisplayNameAttribute" /> from the
 ///     command object to the job when enqueued via <c>ISender.Send(command)</c>.
 ///     <para>
-///     <b>Queue:</b> The primary queue mechanism is
-///     <see cref="Extensions.BackgroundJobClientExtensions.EnqueueCommand{TCommand}" />,
-///     which sets <c>Job.Queue</c> natively via the Hangfire <c>Enqueue(queue, ...)</c> overload.
-///     This filter serves as a safety net for queue assignment during state transitions
-///     (e.g., retries) and for callers that use <c>Enqueue&lt;ISender&gt;</c> directly.
+///         <b>Queue:</b> The primary queue mechanism is
+///         <see cref="Extensions.BackgroundJobClientExtensions.EnqueueCommand{TCommand}" />,
+///         which sets <c>Job.Queue</c> natively via the Hangfire <c>Enqueue(queue, ...)</c> overload.
+///         This filter serves as a safety net for queue assignment during state transitions
+///         (e.g., retries) and for callers that use <c>Enqueue&lt;ISender&gt;</c> directly.
 ///     </para>
 ///     <para>
-///     <b>Retry:</b> Reads <see cref="AutomaticRetryAttribute" /> from the command type
-///     and applies retry logic with exponential backoff when the job fails.
+///         <b>Retry:</b> Reads <see cref="AutomaticRetryAttribute" /> from the command type
+///         and applies retry logic with exponential backoff when the job fails.
 ///     </para>
 ///     <para>
-///     <b>Display Name:</b> Reads <see cref="CommandDisplayNameAttribute" /> from the command type
-///     and stores the formatted display name as a job parameter.
+///         <b>Display Name:</b> Reads <see cref="CommandDisplayNameAttribute" /> from the command type
+///         and stores the formatted display name as a job parameter.
 ///     </para>
 ///     Register globally via <c>GlobalJobFilters.Filters.Add(new CommandAttributeJobFilter())</c>.
 ///     Also captures <see cref="PerformContext" /> via <see cref="IServerFilter" /> and stores it
 ///     in <see cref="PerformContextAccessor" /> so command handlers can access Hangfire Console.
 /// </summary>
-public sealed class CommandAttributeJobFilter : JobFilterAttribute, IClientFilter, IServerFilter, IElectStateFilter, IApplyStateFilter
+public sealed class CommandAttributeJobFilter : JobFilterAttribute, IClientFilter, IServerFilter, IElectStateFilter,
+    IApplyStateFilter
 {
     private const string RetryAttemptsKey = "CommandRetryAttempts";
     private const string QueueNameKey = "CommandQueue";
     private const string DisplayNameKey = "CommandDisplayName";
+
+    public void OnStateApplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
+    {
+        // No action needed
+    }
+
+    public void OnStateUnapplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
+    {
+        // No action needed
+    }
 
     /// <summary>
     ///     Extracts the first <see cref="IBaseRequest" /> argument from the job expression
@@ -82,6 +93,22 @@ public sealed class CommandAttributeJobFilter : JobFilterAttribute, IClientFilte
     }
 
     /// <summary>
+    ///     Applies queue override and retry policy from command attributes during state election.
+    ///     Queue: every time a job transitions to <see cref="EnqueuedState" /> (initial or after retry),
+    ///     the queue is overridden to match the command's <see cref="QueueAttribute" />.
+    ///     Retry: when a job enters <see cref="FailedState" />, retry policy from the command's
+    ///     <see cref="AutomaticRetryAttribute" /> is applied with exponential backoff.
+    /// </summary>
+    public void OnStateElection(ElectStateContext context)
+    {
+        // Always apply queue from command on ANY EnqueuedState transition (initial + retries)
+        ApplyQueueFromCommand(context);
+
+        // Apply retry policy from command when job fails
+        ApplyRetryFromCommand(context);
+    }
+
+    /// <summary>
     ///     Captures the <see cref="PerformContext" /> before the job method executes
     ///     and stores it in <see cref="PerformContextAccessor" /> via <see cref="AsyncLocal{T}" />.
     ///     This makes the context available to command handlers resolved by MediatR
@@ -99,32 +126,6 @@ public sealed class CommandAttributeJobFilter : JobFilterAttribute, IClientFilte
     public void OnPerformed(PerformedContext context)
     {
         PerformContextAccessor.Clear();
-    }
-
-    /// <summary>
-    ///     Applies queue override and retry policy from command attributes during state election.
-    ///     Queue: every time a job transitions to <see cref="EnqueuedState" /> (initial or after retry),
-    ///     the queue is overridden to match the command's <see cref="QueueAttribute" />.
-    ///     Retry: when a job enters <see cref="FailedState" />, retry policy from the command's
-    ///     <see cref="AutomaticRetryAttribute" /> is applied with exponential backoff.
-    /// </summary>
-    public void OnStateElection(ElectStateContext context)
-    {
-        // Always apply queue from command on ANY EnqueuedState transition (initial + retries)
-        ApplyQueueFromCommand(context);
-
-        // Apply retry policy from command when job fails
-        ApplyRetryFromCommand(context);
-    }
-
-    public void OnStateApplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
-    {
-        // No action needed
-    }
-
-    public void OnStateUnapplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
-    {
-        // No action needed
     }
 
     private static void ApplyQueueFromCommand(ElectStateContext context)
@@ -197,10 +198,8 @@ public sealed class CommandAttributeJobFilter : JobFilterAttribute, IClientFilte
             return null;
 
         foreach (var arg in job.Args)
-        {
             if (arg is IBaseRequest request)
                 return request;
-        }
 
         return null;
     }

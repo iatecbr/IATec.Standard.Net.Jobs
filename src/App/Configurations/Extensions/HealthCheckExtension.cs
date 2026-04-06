@@ -1,8 +1,8 @@
 using System.Reflection;
-using Persistence.Options;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Persistence.Options;
 
 namespace App.Configurations.Extensions;
 

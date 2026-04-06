@@ -1,6 +1,6 @@
-using Persistence.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Persistence.Options;
 using StackExchange.Redis;
 
 namespace Persistence.Configurations.Extensions;

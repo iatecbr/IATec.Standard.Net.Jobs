@@ -1,5 +1,5 @@
-using MessageQueue.Options;
 using MessageQueue.Configurations.Extensions;
+using MessageQueue.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

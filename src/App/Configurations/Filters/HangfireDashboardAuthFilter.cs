@@ -7,8 +7,8 @@ namespace App.Configurations.Filters;
 
 public class HangfireDashboardAuthFilter(DashboardOption dashboardOption) : IDashboardAuthorizationFilter
 {
-    private readonly string _username = dashboardOption.Username;
     private readonly string _password = dashboardOption.Password;
+    private readonly string _username = dashboardOption.Username;
 
     public bool Authorize(DashboardContext context)
     {
