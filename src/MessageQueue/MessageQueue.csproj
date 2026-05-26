@@ -8,10 +8,10 @@
 
     <ItemGroup>
         <!-- TODO: upgrade MassTransit to latest version (9.x+) once license is acquired or resolved -->
-        <PackageReference Include="MassTransit" Version="8.5.8"/>
-        <PackageReference Include="MassTransit.AmazonSQS" Version="8.5.8"/>
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.1"/>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.1"/>
+        <PackageReference Include="MassTransit" Version="9.1.1" />
+        <PackageReference Include="MassTransit.AmazonSQS" Version="9.1.1" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.8" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.8" />
     </ItemGroup>
 
     <ItemGroup>
