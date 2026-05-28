@@ -92,7 +92,7 @@ This repository is a **base template / scaffolding project** for creating new .N
 | Hangfire.Throttling | 1.4.3 |
 | MassTransit | 9.1.1 |
 | MassTransit.AmazonSQS | 9.1.1 |
-| StackExchange.Redis | 2.13.1 |
+| StackExchange.Redis | 2.13.17 |
 | Serilog.AspNetCore | 10.0.0 |
 | Serilog | 4.3.1 |
 | MediatR | 14.1.0 |

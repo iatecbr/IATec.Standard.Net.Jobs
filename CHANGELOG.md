@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `README.md` — full template documentation: architecture, configuration, Hangfire job patterns, batch monitoring, Redis, MassTransit/SQS, integration tests, Docker, CI/CD, renaming guide, and Template Extension Points table.
 - `CHANGELOG.md` — full release history.
+- `AGENTS.md` — compact instruction file for OpenCode/AI agents: build commands, architecture rules, integration test wiring, and template placeholders.
+
+### UPDATED
+
+- `Microsoft.NET.Test.Sdk` `18.5.1` → `18.6.0`.
+- `StackExchange.Redis` `2.13.1` → `2.13.17`.
 
 ### UPDATED
 
