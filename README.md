@@ -518,13 +518,15 @@ public sealed record ProcessAssetCommand(Guid AssetId) : IRequest<Result>
 
 `ProcessAssetBatchCommand` creates a Hangfire Pro batch via `IBatchJobService`. A `MonitorBatchCommand` is automatically enqueued to track progress in the Hangfire Console.
 
-| Endpoint | Description |
-|----------|-------------|
-| `POST api/v2/jobs/assets/process` | Enqueue a single `ProcessAssetCommand` |
-| `POST api/v2/jobs/assets/process-batch` | Enqueue a `ProcessAssetBatchCommand` (creates batch) |
-| `GET api/v2/jobs/batch/{batchId}/monitor` | Get batch status and timing |
-| `POST api/v2/jobs/batch/{batchId}/cancel` | Cancel a pending batch |
-| `GET api/v2/jobs/batch/{batchKey}/progress` | Get Redis-based fine-grained progress |
+| Endpoint | v1 | v2 | Description |
+|----------|----|----|-------------|
+| `POST api/v{n}/jobs/assets/process` | ✓ (deprecated) | ✓ | Enqueue a single `ProcessAssetCommand` |
+| `POST api/v{n}/jobs/assets/process-batch` | ✓ (deprecated) | ✓ | Enqueue a `ProcessAssetBatchCommand` (creates batch) |
+| `GET api/v{n}/jobs/batch/{batchId}/monitor` | ✓ | ✓ | Get batch status and timing |
+| `POST api/v{n}/jobs/batch/{batchId}/cancel` | ✓ | ✓ | Cancel a pending batch |
+| `GET api/v{n}/jobs/batch/{batchKey}/progress` | ✓ | ✓ | Get Redis-based fine-grained progress |
+
+> v1 `process` and `process-batch` accept `ProcessAssetCommand[]` (array); v2 accepts `IReadOnlyCollection<ProcessAssetCommand>`.
 
 ### Hangfire Dashboard
 
