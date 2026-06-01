@@ -25,7 +25,7 @@
 - [Logging Dispatcher](#logging-dispatcher)
 - [External Services (AntiCorruption)](#external-services-anticorruption)
 - [Persistence Layer (Redis)](#persistence-layer-redis)
-- [Message Queue Layer (MassTransit/SQS)](#message-queue-layer-massTransitsqs)
+- [Message Queue Layer (MassTransit/SQS)](#message-queue-layer-masstransitsqs)
 - [Domain Layer](#domain-layer)
 - [CrossCutting Layer](#crosscutting-layer)
 - [Test Projects](#test-projects)
