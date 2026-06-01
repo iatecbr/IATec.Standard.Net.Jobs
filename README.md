@@ -431,9 +431,9 @@ In `OptionsExtension.cs`:
 
 The project uses **Scalar** (not Swagger) for interactive API documentation.
 
-- **OpenAPI JSON:** `/openapi/v1.json`
+- **OpenAPI JSON:** `/openapi/v1.json`, `/openapi/v2.json`
 - **Scalar UI:** `/documentation`
-- **Availability:** Only in non-Production environments (`!app.Environment.IsProduction()`).
+- **Availability:** Only in `Local` or `Development` environments.
 - **Theme:** Mars, dark mode, C# HttpClient as default client.
 
 ---

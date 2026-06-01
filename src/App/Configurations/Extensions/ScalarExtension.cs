@@ -41,7 +41,7 @@ public static class ScalarExtension
         {
             options
                 .WithTitle("IATec Standard Jobs API")
-                .WithTheme(ScalarTheme.Kepler)
+                .WithTheme(ScalarTheme.Mars)
                 .EnableDarkMode()
                 .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
         });
