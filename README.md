@@ -90,8 +90,8 @@ This repository is a **base template / scaffolding project** for creating new .N
 | Hangfire.Pro.Redis | 3.3.1 |
 | Hangfire.Console | 1.4.3 |
 | Hangfire.Throttling | 1.4.3 |
-| MassTransit | 9.1.1 |
-| MassTransit.AmazonSQS | 9.1.1 |
+| MassTransit | 8.5.9 |
+| MassTransit.AmazonSQS | 8.5.9 |
 | StackExchange.Redis | 2.13.17 |
 | Serilog.AspNetCore | 10.0.0 |
 | Serilog | 4.3.1 |
@@ -758,7 +758,7 @@ This project is an **intentional scaffold/template**. The following items are **
 | 7 | Empty `AWS.ServiceUrl` | `appsettings.json` | Set LocalStack URL for local dev, leave empty for real AWS |
 | 8 | `{API_NAME}` placeholders | `ScalarExtension.cs`, README | Rename when cloning template |
 | 9 | Unit test projects | `*.Tests/` | Add xUnit/NUnit/MSTest and write unit tests |
-| 10 | MassTransit license | `MessageQueue.csproj` | Upgrade to MassTransit 9.x+ when license is acquired |
+| 10 | MassTransit license | `MessageQueue.csproj` | Pinned to `8.5.9` (last pre-9.x release) — upgrade to 9.x+ when license is acquired |
 
 ---
 
