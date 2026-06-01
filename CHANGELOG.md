@@ -18,9 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Microsoft.NET.Test.Sdk` `18.5.1` → `18.6.0`.
 - `StackExchange.Redis` `2.13.1` → `2.13.17`.
 - `MassTransit` / `MassTransit.AmazonSQS` `9.1.1` → `8.5.9` (pinned to last pre-9.x release pending license).
-
-### UPDATED
-
 - `App.csproj` version bumped to `2.1.0`.
 
 ---
